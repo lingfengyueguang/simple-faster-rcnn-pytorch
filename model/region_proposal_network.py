@@ -47,9 +47,9 @@ class RegionProposalNetwork(nn.Module):
             proposal_creator_params=dict(),
     ):
         super(RegionProposalNetwork, self).__init__()
-        self.anchor_base = generate_anchor_base(
+        self.anchor_base = generate_anchor_base(                    #生成论文中所说的3*3个anchor
             anchor_scales=anchor_scales, ratios=ratios)
-        self.feat_stride = feat_stride
+        self.feat_stride = feat_stride                              #feature map与原图的ratio
         self.proposal_layer = ProposalCreator(self, **proposal_creator_params)
         n_anchor = self.anchor_base.shape[0]
         self.conv1 = nn.Conv2d(in_channels, mid_channels, 3, 1, 1)
@@ -134,7 +134,7 @@ class RegionProposalNetwork(nn.Module):
         return rpn_locs, rpn_scores, rois, roi_indices, anchor
 
 
-def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
+def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):   #height，width为特征图尺寸
     # Enumerate all shifted anchors:
     #
     # add A anchors (1, A, 4) to
@@ -147,9 +147,9 @@ def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
     # xp = cuda.get_array_module(anchor_base)
     # it seems that it can't be boosed using GPU
     import numpy as xp
-    shift_y = xp.arange(0, height * feat_stride, feat_stride)
+    shift_y = xp.arange(0, height * feat_stride, feat_stride)    #特征图坐标对应回原图，认为特征图是原图间隔feat_stride点的采样
     shift_x = xp.arange(0, width * feat_stride, feat_stride)
-    shift_x, shift_y = xp.meshgrid(shift_x, shift_y)
+    shift_x, shift_y = xp.meshgrid(shift_x, shift_y)              #x,y坐标组合产生图像坐标
     shift = xp.stack((shift_y.ravel(), shift_x.ravel(),
                       shift_y.ravel(), shift_x.ravel()), axis=1)
 
