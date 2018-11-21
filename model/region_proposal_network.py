@@ -149,14 +149,14 @@ def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):   #heigh
     import numpy as xp
     shift_y = xp.arange(0, height * feat_stride, feat_stride)    #特征图坐标对应回原图，认为特征图是原图间隔feat_stride点的采样
     shift_x = xp.arange(0, width * feat_stride, feat_stride)
-    shift_x, shift_y = xp.meshgrid(shift_x, shift_y)              #x,y坐标组合产生图像坐标
-    shift = xp.stack((shift_y.ravel(), shift_x.ravel(),
+    shift_x, shift_y = xp.meshgrid(shift_x, shift_y)              #x,y坐标组合产生图像坐标(y[0],x[0]) (y[1],x[1])等
+    shift = xp.stack((shift_y.ravel(), shift_x.ravel(),            #ravel()将数组拉平，类似于flatten，但是其改变会影响原数组
                       shift_y.ravel(), shift_x.ravel()), axis=1)
 
-    A = anchor_base.shape[0]
-    K = shift.shape[0]
-    anchor = anchor_base.reshape((1, A, 4)) + \
-             shift.reshape((1, K, 4)).transpose((1, 0, 2))
+    A = anchor_base.shape[0]              #base anchor数目，论文中为3*3=9
+    K = shift.shape[0]                     #anchor的组数，vgg为62*37，每组anchor9个
+    anchor = anchor_base.reshape((1, A, 4)) + \   #anchor_base.reshape((1, A, 4))等价于anchor[np.newaxis,:,:] 就是新增一个维度
+             shift.reshape((1, K, 4)).transpose((1, 0, 2))  #numpy形状不相等矩阵做数学运算时，会按长轴进行复制，使两个矩阵相等，等价于(k,A,4)+(K,a,4)
     anchor = anchor.reshape((K * A, 4)).astype(np.float32)
     return anchor
 
@@ -181,7 +181,7 @@ def _enumerate_shifted_anchor_torch(anchor_base, feat_stride, height, width):
 
     A = anchor_base.shape[0]
     K = shift.shape[0]
-    anchor = anchor_base.reshape((1, A, 4)) + \
+    anchor = anchor_base.reshape((1, A, 4)) + \       #
              shift.reshape((1, K, 4)).transpose((1, 0, 2))
     anchor = anchor.reshape((K * A, 4)).astype(np.float32)
     return anchor
