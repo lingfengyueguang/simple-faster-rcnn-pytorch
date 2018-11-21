@@ -47,12 +47,12 @@ class RegionProposalNetwork(nn.Module):
             proposal_creator_params=dict(),
     ):
         super(RegionProposalNetwork, self).__init__()
-        self.anchor_base = generate_anchor_base(                    #生成论文中所说的3*3个anchor
+        self.anchor_base = generate_anchor_base(                    #生成论文中所说的3*3个anchor,坐标为相对于中心点的偏移
             anchor_scales=anchor_scales, ratios=ratios)
         self.feat_stride = feat_stride                              #feature map与原图的ratio
         self.proposal_layer = ProposalCreator(self, **proposal_creator_params)
-        n_anchor = self.anchor_base.shape[0]
-        self.conv1 = nn.Conv2d(in_channels, mid_channels, 3, 1, 1)
+        n_anchor = self.anchor_base.shape[0]                        #论文中的3*3=9
+        self.conv1 = nn.Conv2d(in_channels, mid_channels, 3, 1, 1) #(in_channels, mid_channels, kernel, step, padding)
         self.score = nn.Conv2d(mid_channels, n_anchor * 2, 1, 1, 0)
         self.loc = nn.Conv2d(mid_channels, n_anchor * 4, 1, 1, 0)
         normal_init(self.conv1, 0, 0.01)
@@ -99,18 +99,18 @@ class RegionProposalNetwork(nn.Module):
 
         """
         n, _, hh, ww = x.shape
-        anchor = _enumerate_shifted_anchor(
+        anchor = _enumerate_shifted_anchor(           #生成9*62*37个anchor(n,4)
             np.array(self.anchor_base),
             self.feat_stride, hh, ww)
 
         n_anchor = anchor.shape[0] // (hh * ww)
         h = F.relu(self.conv1(x))
 
-        rpn_locs = self.loc(h)
+        rpn_locs = self.loc(h)      #位置回归
         # UNNOTE: check whether need contiguous
         # A: Yes
-        rpn_locs = rpn_locs.permute(0, 2, 3, 1).contiguous().view(n, -1, 4)
-        rpn_scores = self.score(h)
+        rpn_locs = rpn_locs.permute(0, 2, 3, 1).contiguous().view(n, -1, 4)  #(n,c,h,w)->(n,h,w,c)->(n,:,c)
+        rpn_scores = self.score(h)      #预测前景背景得分
         rpn_scores = rpn_scores.permute(0, 2, 3, 1).contiguous()
         rpn_fg_scores = \
             rpn_scores.view(n, hh, ww, n_anchor, 2)[:, :, :, :, 1].contiguous()
